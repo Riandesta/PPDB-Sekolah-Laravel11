@@ -2,51 +2,61 @@
 
 namespace App\Models;
 
+use App\Models\TahunAjaran;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Administrasi extends Model
 {
+    use HasFactory;
 
-    protected $table = 'administrasis';
     protected $fillable = [
         'pendaftaran_id',
         'no_bayar',
-        'tahun_ajaran_id',
+        'tanggal_bayar',
         'biaya_pendaftaran',
         'biaya_ppdb',
-        'biaya_mpls',
         'biaya_awal_tahun',
-        'total_biaya',
+        'biaya_mpls',
         'total_bayar',
-        'sisa_pembayaran',
         'status_pembayaran',
+        'is_pendaftaran_lunas',
+        'is_ppdb_lunas',
+        'is_mpls_lunas',
+        'is_awal_tahun_lunas',
+        'tanggal_bayar_pendaftaran',
+        'tanggal_bayar_ppdb',
+        'tanggal_bayar_mpls',
+        'tanggal_bayar_awal_tahun',
+        'metode_pembayaran',
+        'bukti_pembayaran',
         'keterangan',
         'sisa_pembayaran',
     ];
 
-
-
     protected $casts = [
-        'biaya_pendaftaran' => 'integer',
-        'biaya_ppdb' => 'integer',
-        'biaya_mpls' => 'integer',
-        'biaya_awal_tahun' => 'integer',
-        'total_biaya' => 'integer',
-        'total_bayar' => 'integer',
-        'sisa_pembayaran' => 'integer',
-       'tanggal_bayar_pendaftaran' => 'datetime',
-       'tanggal_bayar_ppdb'  => 'datetime',
-       'tanggal_bayar_mpls'  => 'datetime',
-       'tanggal_bayar_awal_tahun'  => 'datetime',
+        'tanggal_bayar' => 'datetime',
+        'tanggal_bayar_pendaftaran' => 'datetime',
+        'tanggal_bayar_ppdb' => 'datetime',
+        'tanggal_bayar_mpls' => 'datetime',
+        'tanggal_bayar_awal_tahun' => 'datetime',
+        'is_pendaftaran_lunas' => 'boolean',
+        'is_ppdb_lunas' => 'boolean',
+        'is_mpls_lunas' => 'boolean',
+        'is_awal_tahun_lunas' => 'boolean',
     ];
 
+    protected $appends = [
+        'sisa_pembayaran_formatted'
+    ];
+
+    // Relationships
     public function pendaftaran()
     {
-        return $this->belongsTo(Pendaftaran::class, 'pendaftaran_id');
+        return $this->belongsTo(Pendaftaran::class);
     }
-
 
     public function tahunAjaran(): BelongsTo
     {
@@ -54,10 +64,54 @@ class Administrasi extends Model
     }
 
     public function riwayatPembayaran(): HasMany
-{
-    return $this->hasMany(RiwayatPembayaran::class)->orderBy('created_at', 'desc');
-}
+    {
+        return $this->hasMany(RiwayatPembayaran::class)->orderBy('created_at', 'desc');
+    }
 
+    // Calculate total payment for a specific type
+    public function totalBayarUntukJenis($jenis)
+    {
+        return $this->riwayatPembayaran()
+            ->where('jenis_pembayaran', $jenis)
+            ->where('status', 'success') // Only count successful payments
+            ->sum('jumlah_bayar');
+    }
+
+    // Get total remaining payment
+    public function getSisaPembayaranAttribute()
+    {
+        $totalBiaya = $this->biaya_pendaftaran + $this->biaya_ppdb + $this->biaya_mpls + $this->biaya_awal_tahun;
+        return $totalBiaya - $this->total_bayar;
+    }
+
+    // Get formatted remaining payment
+    public function getSisaPembayaranFormattedAttribute()
+    {
+        return 'Rp ' . number_format($this->sisa_pembayaran, 0, ',', '.');
+    }
+
+    // Get latest payment
+    public function getLatestPaymentAttribute()
+    {
+        return $this->riwayatPembayaran()->latest()->first();
+    }
+
+    // Check if all components are paid
+    public function getIsFullyPaidAttribute()
+    {
+        return $this->is_pendaftaran_lunas &&
+               $this->is_ppdb_lunas &&
+               $this->is_mpls_lunas &&
+               $this->is_awal_tahun_lunas;
+    }
+
+    // Get pending payments
+    public function getPendingPaymentsAttribute()
+    {
+        return $this->riwayatPembayaran()
+            ->where('status', 'pending')
+            ->get();
+    }
     public function updateStatusPembayaran(): void
     {
         $this->sisa_pembayaran = $this->total_biaya - $this->total_bayar;
@@ -65,29 +119,8 @@ class Administrasi extends Model
         $this->save();
     }
 
-    public function totalBayarUntukJenis($jenis) {
-        return $this->riwayatPembayaran()
-                    ->where('jenis_pembayaran', $jenis)
-                    ->sum('jumlah_bayar');
-    }
-
-    public function getSisaPembayaranAttribute()
-{
-    // Hitung total biaya
-    $totalBiaya = $this->biaya_pendaftaran + $this->biaya_ppdb + $this->biaya_mpls + $this->biaya_awal_tahun;
-
-    // Kembalikan selisih total biaya dan total bayar
-    return $totalBiaya - $this->total_bayar;
-}
-
-public function getSisaPembayaranFormattedAttribute()
-{
-    return 'Rp ' . number_format($this->sisa_pembayaran, 0, ',', '.');
-}
-
     public function setSisaPembayaranAttribute($value)
     {
         $this->attributes['sisa_pembayaran'] = $this->biaya_pendaftaran + $this->biaya_ppdb + $this->biaya_awal_tahun + $this->biaya_mpls - $this->total_bayar;
     }
 }
-

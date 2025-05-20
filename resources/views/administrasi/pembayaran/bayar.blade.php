@@ -1,3 +1,4 @@
+{{-- administrasi/pembayaran/bayar.blade.php --}}
 <x-layout>
     <div class="container-fluid">
         <div class="card">
@@ -117,10 +118,11 @@
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Metode Pembayaran</label>
-                                    <select name="metode_pembayaran"
+                                    <select name="metode_pembayaran" id="metode_pembayaran"
                                         class="form-select @error('metode_pembayaran') is-invalid @enderror" required>
                                         <option value="tunai">Tunai</option>
-                                        <option value="transfer">Transfer Bank</option>
+                                        <option value="transfer">Transfer Bank Manual</option>
+                                        <option value="midtrans">Payment Gateway (Midtrans)</option>
                                     </select>
                                     @error('metode_pembayaran')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -160,7 +162,7 @@
         <script>
             $(document).ready(function() {
                 // Toggle bukti pembayaran
-                $('select[name="metode_pembayaran"]').on('change', function() {
+                $('#metode_pembayaran').on('change', function() {
                     if ($(this).val() === 'transfer') {
                         $('#bukti-pembayaran').show();
                         $('input[name="bukti_pembayaran"]').prop('required', true);
@@ -194,7 +196,39 @@
                     let totalBiaya = parseInt($('#total-biaya').data('total'));
                     let sudahDibayar = parseInt($('#sudah-dibayar').data('total'));
                     let sisaPembayaran = totalBiaya - sudahDibayar - jumlahBayar;
+                    if (sisaPembayaran < 0) sisaPembayaran = 0;
                     $('#total-sisa-pembayaran').val(formatRupiah(sisaPembayaran));
+                });
+
+                // Validate form before submission
+                $('form').on('submit', function(e) {
+                    const selectedTypes = $('.jenis-pembayaran:checked').length;
+                    if (selectedTypes === 0) {
+                        e.preventDefault();
+                        alert('Silakan pilih minimal satu jenis pembayaran');
+                        return false;
+                    }
+
+                    const jumlahBayar = parseInt($('#jumlah_bayar').val()) || 0;
+                    if (jumlahBayar <= 0) {
+                        e.preventDefault();
+                        alert('Jumlah pembayaran harus lebih dari 0');
+                        return false;
+                    }
+
+                    // Validate against maximum payment
+                    let maxPayment = 0;
+                    $('.jenis-pembayaran:checked').each(function() {
+                        maxPayment += parseInt($(this).data('sisa')) || 0;
+                    });
+
+                    if (jumlahBayar > maxPayment) {
+                        e.preventDefault();
+                        alert('Jumlah pembayaran melebihi sisa tagihan');
+                        return false;
+                    }
+
+                    return true;
                 });
             });
         </script>

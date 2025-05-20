@@ -1,3 +1,4 @@
+{{-- administrasi/pembayaran/index.php --}}
 <x-layout>
     @slot('title')
         Manajemen Pembayaran

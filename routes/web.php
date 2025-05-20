@@ -17,6 +17,7 @@ use App\Http\Controllers\{
     PendaftaranController,
     TahunAjaranController,
     AdministrasiController,
+    MidtransController,
     LandingPageController
 };
 
@@ -93,7 +94,6 @@ Route::resources([
 
 Route::resource('tahun-ajaran', TahunAjaranController::class);
 
-
 // Administrasi Management
 Route::prefix('administrasi')->name('administrasi.')->group(function () {
     Route::get('/pembayaran', [AdministrasiController::class, 'index'])->name('pembayaran.index');
@@ -101,8 +101,29 @@ Route::prefix('administrasi')->name('administrasi.')->group(function () {
     Route::get('/pembayaran/detail/{administrasi}', [AdministrasiController::class, 'show'])->name('pembayaran.detail');
     Route::get('/pembayaran/bayar/{administrasi}', [AdministrasiController::class, 'create'])->name('pembayaran.bayar');
     Route::post('/pembayaran/bayar/{administrasi}', [AdministrasiController::class, 'store'])->name('pembayaran.store');
+    Route::get('/pembayaran/{administrasi}/struk', [AdministrasiController::class, 'struk'])->name('pembayaran.struk');
+
+    // Midtrans payment page
+    Route::get('/pembayaran/midtrans/{administrasi}', [AdministrasiController::class, 'midtransPayment'])->name('pembayaran.midtrans');
+    Route::get('/pembayaran/check-status/{orderId}', [AdministrasiController::class, 'checkPaymentStatus'])->name('pembayaran.check-status');
 });
-Route::get('/administrasi/pembayaran/{administrasi}/struk', [AdministrasiController::class, 'struk'])->name('administrasi.pembayaran.struk');
+
+// Midtrans Routes
+Route::prefix('midtrans')->name('midtrans.')->group(function () {
+    // Get Snap Token
+    Route::post('/get-snap-token/{administrasi}', [MidtransController::class, 'getSnapToken'])->name('get-snap-token');
+
+    // Notification URL
+    Route::post('/notification', [MidtransController::class, 'notification'])->name('notification');
+
+    // Finish, Unfinish, and Error URLs
+    Route::get('/finish', [MidtransController::class, 'finish'])->name('finish');
+    Route::get('/unfinish', [MidtransController::class, 'unfinish'])->name('unfinish');
+    Route::get('/error', [MidtransController::class, 'error'])->name('error');
+
+    // Check payment status
+    Route::get('/status', [MidtransController::class, 'status'])->name('status');
+});
 
 // Laporan Management
 Route::prefix('laporan')->name('laporan.')->group(function () {

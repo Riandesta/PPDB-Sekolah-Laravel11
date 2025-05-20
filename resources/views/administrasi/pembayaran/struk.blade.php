@@ -1,3 +1,4 @@
+{{-- administrasi/pembayaran/struk.blade.php --}}
 <x-layout>
     <div class="container-fluid">
         <div class="card">
@@ -8,7 +9,8 @@
                 <div class="struk">
                     <!-- Header Struk -->
                     <div class="struk-header text-center">
-                        <img src="{{ asset('storage/logo.png') }}" alt="Logo" class="struk-logo" style="max-width: 100px;">
+                        <img src="{{ asset('storage/logo.png') }}" alt="Logo" class="struk-logo"
+                            style="max-width: 100px;">
                         <h4 class="struk-title">SMK IGASAR PINDAD BANDUNG</h4>
                     </div>
 
@@ -33,6 +35,7 @@
                                 <tr>
                                     <th>Jenis Pembayaran</th>
                                     <th>Jumlah Bayar</th>
+                                    <th>Metode</th>
                                     <th>Status</th>
                                     <th>Sisa</th>
                                 </tr>
@@ -42,12 +45,23 @@
                                     <tr>
                                         <td>{{ ucfirst($latestPayment->jenis_pembayaran) }}</td>
                                         <td>Rp {{ number_format($latestPayment->jumlah_bayar, 0, ',', '.') }}</td>
-                                        <td>{{ $latestPayment->status }}</td>
+                                        <td>{{ ucfirst($latestPayment->metode_pembayaran) }}</td>
+                                        <td>{{ ucfirst($latestPayment->status) }}</td>
                                         <td>Rp {{ number_format($administrasi->sisa_pembayaran, 0, ',', '.') }}</td>
                                     </tr>
+                                    @if (
+                                        $latestPayment->metode_pembayaran === 'midtrans' &&
+                                            isset($latestPayment->keterangan) &&
+                                            !empty($latestPayment->keterangan))
+                                        <tr>
+                                            <td colspan="5" class="text-center">
+                                                <strong>Keterangan:</strong> {{ $latestPayment->keterangan }}
+                                            </td>
+                                        </tr>
+                                    @endif
                                 @else
                                     <tr>
-                                        <td colspan="4" class="text-center">Tidak ada data pembayaran.</td>
+                                        <td colspan="5" class="text-center">Tidak ada data pembayaran.</td>
                                     </tr>
                                 @endif
                             </tbody>
@@ -56,14 +70,22 @@
 
                     <!-- Footer Struk -->
                     <div class="struk-footer text-center">
-                        <p><strong>Total Sisa Pembayaran:</strong> Rp {{ number_format($administrasi->sisa_pembayaran, 0, ',', '.') }}</p>
+                        <p><strong>Total Sisa Pembayaran:</strong> Rp
+                            {{ number_format($administrasi->sisa_pembayaran, 0, ',', '.') }}</p>
+                        <p><strong>Status Pembayaran:</strong>
+                            <span
+                                class="badge text-white {{ $administrasi->status_pembayaran === 'Lunas' ? 'bg-success' : 'bg-warning' }}">
+                                {{ $administrasi->status_pembayaran }}
+                            </span>
+                        </p>
                     </div>
                 </div>
 
                 <!-- Tombol Aksi -->
                 <div class="text-center mt-4">
-                    <a href="{{ route('administrasi.pembayaran.index') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Kembali
+                    <a href="{{ route('administrasi.pembayaran.detail', $administrasi->id) }}"
+                        class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Kembali ke Detail
                     </a>
                     <button id="printStruk" class="btn btn-primary">
                         <i class="fas fa-print"></i> Cetak Struk
@@ -103,11 +125,13 @@ Jurusan: {{ $administrasi->pendaftaran->jurusan->nama_jurusan }}
 Tanggal Pembayaran: {{ now()->format('d/m/Y H:i') }}
 
 Jenis Pembayaran: ${latestPayment.jenis_pembayaran}
-Jumlah Pembayaran: Rp ${latestPayment.jumlah_bayar}
+Jumlah Pembayaran: Rp ${parseInt(latestPayment.jumlah_bayar).toLocaleString('id')}
+Metode Pembayaran: ${latestPayment.metode_pembayaran}
 Status Pembayaran: ${latestPayment.status}
 Sisa Pembayaran: Rp {{ number_format($administrasi->sisa_pembayaran, 0, ',', '.') }}
 
 Total Sisa Pembayaran: Rp {{ number_format($administrasi->sisa_pembayaran, 0, ',', '.') }}
+Status: {{ $administrasi->status_pembayaran }}
 `);
                     window.open("https://wa.me/" + noWa + "?text=" + message, '_blank');
                 });
